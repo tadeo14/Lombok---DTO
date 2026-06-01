@@ -1,5 +1,6 @@
-package com.tp.model;
+package com.utn.entities;
 
+import com.utn.enums.Rol;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -10,7 +11,11 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Categoria extends Base {
+public class Usuario extends Base {
     private String nombre;
-    private String descripcion;
+    private String apellido;
+    private String email;
+    private String celular;
+    private String contrasena;
+    private Rol rol;
 }

@@ -1,10 +1,10 @@
-package com.tp.main;
+package com.utn;
 
-import com.tp.dtos.UsuarioDTO;
-import com.tp.enums.Estado;
-import com.tp.enums.FormaPago;
-import com.tp.enums.Rol;
-import com.tp.model.*;
+import com.utn.dtos.UsuarioDTO;
+import com.utn.entities.*;
+import com.utn.enums.Estado;
+import com.utn.enums.FormaPago;
+import com.utn.enums.Rol;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -133,13 +133,13 @@ public class Main {
         List<Pedido> pedidos = List.of(pedido1, pedido2, pedido3);
 
         // ================================================================
-        // 1. Mostrar un producto individual
+        // 1. Producto individual
         // ================================================================
         System.out.println("=== Producto individual ===");
         System.out.println(p1);
 
         // ================================================================
-        // 2. Mostrar listado completo de productos
+        // 2. Listado completo de productos
         // ================================================================
         System.out.println("\n=== Listado de productos ===");
         productos.forEach(System.out::println);
@@ -155,16 +155,15 @@ public class Main {
                 ))
                 .orElseThrow();
 
-        System.out.println("Usuario: " + usuarioConMasPedidos.getNombre());
+        System.out.println("Usuario: " + usuarioConMasPedidos.getNombre() + " " + usuarioConMasPedidos.getApellido());
         pedidos.stream()
                 .filter(p -> p.getUsuario().equals(usuarioConMasPedidos))
-                .forEach(System.out::println);
+                .forEach(p -> System.out.println(p + "\n  Total: $" + p.calcularTotal()));
 
         // ================================================================
         // 4. Comparación con equals
         // ================================================================
         System.out.println("\n=== Comparación con equals ===");
-        // Producto con mismo nombre y categoría que p1 (Notebook, Electrónica)
         Producto productoComparar = Producto.builder()
                 .id(99L).eliminado(false).createdAt(LocalDateTime.now())
                 .nombre("Notebook").descripcion("Otra descripción").precio(new BigDecimal("99999")).stock(1).categoria(electronica)

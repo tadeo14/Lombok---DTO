@@ -1,4 +1,4 @@
-package com.tp.dtos;
+package com.utn.dtos;
 
 public record UsuarioDTO(
         Long id,

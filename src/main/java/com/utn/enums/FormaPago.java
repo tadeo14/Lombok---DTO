@@ -1,4 +1,4 @@
-package com.tp.enums;
+package com.utn.enums;
 
 public enum FormaPago {
     EFECTIVO,

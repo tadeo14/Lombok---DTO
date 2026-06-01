@@ -4,7 +4,7 @@ plugins {
 }
 
 application {
-    mainClass = 'com.tp.main.Main'
+    mainClass = 'com.utn.Main'
 }
 
 group = 'com.tp'

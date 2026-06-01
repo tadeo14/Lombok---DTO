@@ -1,4 +1,4 @@
-package com.tp.model;
+package com.utn.entities;
 
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -12,12 +12,13 @@ import java.math.BigDecimal;
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DetallePedido extends Base {
+public class DetallePedido extends Base implements Calculable {
     private Producto producto;
     private int cantidad;
     private BigDecimal precioUnitario;
 
-    public BigDecimal getSubtotal() {
+    @Override
+    public BigDecimal calcularTotal() {
         return precioUnitario.multiply(BigDecimal.valueOf(cantidad));
     }
 }
