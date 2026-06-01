@@ -13,7 +13,9 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public class Usuario extends Base {
     private String nombre;
+    private String apellido;
     private String email;
+    private String celular;
     private String contrasena;
     private Rol rol;
 }

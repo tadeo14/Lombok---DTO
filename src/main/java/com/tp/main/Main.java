@@ -86,12 +86,12 @@ public class Main {
         // --- Usuarios ---
         Usuario usuario1 = Usuario.builder()
                 .id(1L).eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Ana García").email("ana@mail.com").contrasena("pass123").rol(Rol.CLIENTE)
+                .nombre("Ana").apellido("García").email("ana@mail.com").celular("1122334455").contrasena("pass123").rol(Rol.USUARIO)
                 .build();
 
         Usuario usuario2 = Usuario.builder()
                 .id(2L).eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Carlos López").email("carlos@mail.com").contrasena("pass456").rol(Rol.ADMIN)
+                .nombre("Carlos").apellido("López").email("carlos@mail.com").celular("1199887766").contrasena("pass456").rol(Rol.ADMIN)
                 .build();
 
         // --- Pedidos ---
@@ -108,7 +108,7 @@ public class Main {
 
         Pedido pedido2 = Pedido.builder()
                 .id(2L).eliminado(false).createdAt(LocalDateTime.now())
-                .usuario(usuario1).estado(Estado.ENVIADO).formaPago(FormaPago.TRANSFERENCIA)
+                .usuario(usuario1).estado(Estado.CONFIRMADO).formaPago(FormaPago.TRANSFERENCIA)
                 .detalles(List.of(
                         DetallePedido.builder().id(3L).eliminado(false).createdAt(LocalDateTime.now())
                                 .producto(p5).cantidad(3).precioUnitario(p5.getPrecio()).build(),
@@ -121,7 +121,7 @@ public class Main {
 
         Pedido pedido3 = Pedido.builder()
                 .id(3L).eliminado(false).createdAt(LocalDateTime.now())
-                .usuario(usuario2).estado(Estado.ENTREGADO).formaPago(FormaPago.EFECTIVO)
+                .usuario(usuario2).estado(Estado.TERMINADO).formaPago(FormaPago.EFECTIVO)
                 .detalles(List.of(
                         DetallePedido.builder().id(6L).eliminado(false).createdAt(LocalDateTime.now())
                                 .producto(p8).cantidad(1).precioUnitario(p8.getPrecio()).build(),
@@ -179,8 +179,8 @@ public class Main {
         // 5. UsuarioDTO (record)
         // ================================================================
         System.out.println("\n=== UsuarioDTO ===");
-        UsuarioDTO dto1 = new UsuarioDTO(usuario1.getId(), usuario1.getNombre(), usuario1.getEmail());
-        UsuarioDTO dto2 = new UsuarioDTO(usuario2.getId(), usuario2.getNombre(), usuario2.getEmail());
+        UsuarioDTO dto1 = new UsuarioDTO(usuario1.getId(), usuario1.getNombre(), usuario1.getApellido(), usuario1.getEmail(), usuario1.getCelular());
+        UsuarioDTO dto2 = new UsuarioDTO(usuario2.getId(), usuario2.getNombre(), usuario2.getApellido(), usuario2.getEmail(), usuario2.getCelular());
         System.out.println(dto1);
         System.out.println(dto2);
     }
