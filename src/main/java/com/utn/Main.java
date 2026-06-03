@@ -8,7 +8,10 @@ import com.utn.enums.Rol;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Main {
 
@@ -94,40 +97,34 @@ public class Main {
                 .nombre("Carlos").apellido("López").email("carlos@mail.com").celular("1199887766").contrasena("pass456").rol(Rol.ADMIN)
                 .build();
 
-        // --- Pedidos ---
+        // --- Pedidos con @Singular (un detalle por llamada) ---
         Pedido pedido1 = Pedido.builder()
                 .id(1L).eliminado(false).createdAt(LocalDateTime.now())
                 .usuario(usuario1).estado(Estado.PENDIENTE).formaPago(FormaPago.TARJETA_CREDITO)
-                .detalles(List.of(
-                        DetallePedido.builder().id(1L).eliminado(false).createdAt(LocalDateTime.now())
-                                .producto(p1).cantidad(1).precioUnitario(p1.getPrecio()).build(),
-                        DetallePedido.builder().id(2L).eliminado(false).createdAt(LocalDateTime.now())
-                                .producto(p2).cantidad(2).precioUnitario(p2.getPrecio()).build()
-                ))
+                .detalle(DetallePedido.builder().id(1L).eliminado(false).createdAt(LocalDateTime.now())
+                        .producto(p1).cantidad(1).precioUnitario(p1.getPrecio()).build())
+                .detalle(DetallePedido.builder().id(2L).eliminado(false).createdAt(LocalDateTime.now())
+                        .producto(p2).cantidad(2).precioUnitario(p2.getPrecio()).build())
                 .build();
 
         Pedido pedido2 = Pedido.builder()
                 .id(2L).eliminado(false).createdAt(LocalDateTime.now())
                 .usuario(usuario1).estado(Estado.CONFIRMADO).formaPago(FormaPago.TRANSFERENCIA)
-                .detalles(List.of(
-                        DetallePedido.builder().id(3L).eliminado(false).createdAt(LocalDateTime.now())
-                                .producto(p5).cantidad(3).precioUnitario(p5.getPrecio()).build(),
-                        DetallePedido.builder().id(4L).eliminado(false).createdAt(LocalDateTime.now())
-                                .producto(p6).cantidad(1).precioUnitario(p6.getPrecio()).build(),
-                        DetallePedido.builder().id(5L).eliminado(false).createdAt(LocalDateTime.now())
-                                .producto(p7).cantidad(1).precioUnitario(p7.getPrecio()).build()
-                ))
+                .detalle(DetallePedido.builder().id(3L).eliminado(false).createdAt(LocalDateTime.now())
+                        .producto(p5).cantidad(3).precioUnitario(p5.getPrecio()).build())
+                .detalle(DetallePedido.builder().id(4L).eliminado(false).createdAt(LocalDateTime.now())
+                        .producto(p6).cantidad(1).precioUnitario(p6.getPrecio()).build())
+                .detalle(DetallePedido.builder().id(5L).eliminado(false).createdAt(LocalDateTime.now())
+                        .producto(p7).cantidad(1).precioUnitario(p7.getPrecio()).build())
                 .build();
 
         Pedido pedido3 = Pedido.builder()
                 .id(3L).eliminado(false).createdAt(LocalDateTime.now())
                 .usuario(usuario2).estado(Estado.TERMINADO).formaPago(FormaPago.EFECTIVO)
-                .detalles(List.of(
-                        DetallePedido.builder().id(6L).eliminado(false).createdAt(LocalDateTime.now())
-                                .producto(p8).cantidad(1).precioUnitario(p8.getPrecio()).build(),
-                        DetallePedido.builder().id(7L).eliminado(false).createdAt(LocalDateTime.now())
-                                .producto(p9).cantidad(2).precioUnitario(p9.getPrecio()).build()
-                ))
+                .detalle(DetallePedido.builder().id(6L).eliminado(false).createdAt(LocalDateTime.now())
+                        .producto(p8).cantidad(1).precioUnitario(p8.getPrecio()).build())
+                .detalle(DetallePedido.builder().id(7L).eliminado(false).createdAt(LocalDateTime.now())
+                        .producto(p9).cantidad(2).precioUnitario(p9.getPrecio()).build())
                 .build();
 
         List<Pedido> pedidos = List.of(pedido1, pedido2, pedido3);
@@ -146,19 +143,22 @@ public class Main {
 
         // ================================================================
         // 3. Pedidos del usuario con mayor cantidad de pedidos
+        //    Optimizado: groupingBy agrupa en un solo recorrido, luego
+        //    se busca el usuario con la lista más larga.
         // ================================================================
         System.out.println("\n=== Pedidos del usuario con más pedidos ===");
-        Usuario usuarioConMasPedidos = List.of(usuario1, usuario2).stream()
-                .max((u1, u2) -> Long.compare(
-                        pedidos.stream().filter(p -> p.getUsuario().equals(u1)).count(),
-                        pedidos.stream().filter(p -> p.getUsuario().equals(u2)).count()
-                ))
-                .orElseThrow();
+        Map<Usuario, List<Pedido>> pedidosPorUsuario = pedidos.stream()
+                .collect(Collectors.groupingBy(Pedido::getUsuario));
 
-        System.out.println("Usuario: " + usuarioConMasPedidos.getNombre() + " " + usuarioConMasPedidos.getApellido());
-        pedidos.stream()
-                .filter(p -> p.getUsuario().equals(usuarioConMasPedidos))
-                .forEach(p -> System.out.println(p + "\n  Total: $" + p.calcularTotal()));
+        pedidosPorUsuario.entrySet().stream()
+                .max(Comparator.comparingInt(e -> e.getValue().size()))
+                .ifPresent(entry -> {
+                    Usuario u = entry.getKey();
+                    System.out.println("Usuario: " + u.getNombre() + " " + u.getApellido()
+                            + " (" + entry.getValue().size() + " pedidos)");
+                    entry.getValue().forEach(p ->
+                            System.out.println(p + "\n  Total: $" + p.calcularTotal()));
+                });
 
         // ================================================================
         // 4. Comparación con equals

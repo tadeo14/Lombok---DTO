@@ -6,7 +6,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -17,7 +17,8 @@ import java.util.List;
 @NoArgsConstructor
 public class Pedido extends Base implements Calculable {
     private Usuario usuario;
-    private List<DetallePedido> detalles;
+    @Singular
+    private Set<DetallePedido> detalles;
     private Estado estado;
     private FormaPago formaPago;
 
