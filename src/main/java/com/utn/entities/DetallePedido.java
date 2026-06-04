@@ -1,9 +1,8 @@
 package com.utn.entities;
 
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-
-import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -12,25 +11,28 @@ import java.math.BigDecimal;
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
+@Entity
+@Table(name = "detalles_pedido")
 public class DetallePedido extends Base implements Calculable {
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "producto_id")
     private Producto producto;
+
+    @Column(nullable = false)
     private int cantidad;
-    private BigDecimal precioUnitario;
+
+    private Double subtotal;
+
+    @Override
+    public void calcularTotal() {
+        if (producto != null)
+            this.subtotal = producto.getPrecio() * cantidad;
+    }
 
     public void setCantidad(int cantidad) {
         if (cantidad <= 0)
             throw new IllegalArgumentException("La cantidad debe ser mayor a cero");
         this.cantidad = cantidad;
-    }
-
-    public void setPrecioUnitario(BigDecimal precioUnitario) {
-        if (precioUnitario == null || precioUnitario.compareTo(BigDecimal.ZERO) < 0)
-            throw new IllegalArgumentException("El precio unitario no puede ser nulo ni negativo");
-        this.precioUnitario = precioUnitario;
-    }
-
-    @Override
-    public BigDecimal calcularTotal() {
-        return precioUnitario.multiply(BigDecimal.valueOf(cantidad));
     }
 }

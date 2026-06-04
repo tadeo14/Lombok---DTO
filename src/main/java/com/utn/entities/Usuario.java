@@ -1,6 +1,7 @@
 package com.utn.entities;
 
 import com.utn.enums.Rol;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -11,12 +12,26 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
+@Entity
+@Table(name = "usuarios")
 public class Usuario extends Base {
+
+    @Column(nullable = false)
     private String nombre;
+
+    @Column(nullable = false)
     private String apellido;
+
+    @Column(nullable = false, unique = true)
     private String email;
+
     private String celular;
+
+    @Column(nullable = false)
     private String contrasena;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Rol rol;
 
     public void setEmail(String email) {
