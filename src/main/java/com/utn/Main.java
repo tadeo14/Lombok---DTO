@@ -1,236 +1,371 @@
 package com.utn;
 
-import com.utn.dtos.UsuarioDTO;
-import com.utn.entities.*;
-import com.utn.enums.Estado;
-import com.utn.enums.FormaPago;
-import com.utn.enums.Rol;
-import jakarta.persistence.*;
+import com.utn.entities.Categoria;
+import com.utn.entities.Producto;
+import com.utn.repository.CategoriaRepository;
+import com.utn.repository.ProductoRepository;
+import com.utn.util.JPAUtil;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.Scanner;
 
 public class Main {
 
+    private static final Scanner sc = new Scanner(System.in);
+    private static final CategoriaRepository categoriaRepo = new CategoriaRepository();
+    private static final ProductoRepository productoRepo = new ProductoRepository();
+
     public static void main(String[] args) {
+        boolean salir = false;
+        while (!salir) {
+            System.out.println("\n╔══════════════════════════════╗");
+            System.out.println("║       MENÚ PRINCIPAL         ║");
+            System.out.println("╠══════════════════════════════╣");
+            System.out.println("║  1. ABM Categorías           ║");
+            System.out.println("║  2. ABM Productos            ║");
+            System.out.println("║  3. Reportes                 ║");
+            System.out.println("║  0. Salir                    ║");
+            System.out.println("╚══════════════════════════════╝");
+            System.out.print("Opción: ");
+            switch (leerInt()) {
+                case 1 -> menuCategorias();
+                case 2 -> menuProductos();
+                case 3 -> menuReportes();
+                case 0 -> salir = true;
+                default -> System.out.println("⚠ Opción inválida.");
+            }
+        }
+        JPAUtil.close();
+        System.out.println("Hasta luego.");
+    }
 
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("miUnidad");
-        EntityManager em = emf.createEntityManager();
+    // ─────────────────────────────────────────────────────────────
+    // MENÚ CATEGORÍAS
+    // ─────────────────────────────────────────────────────────────
+    private static void menuCategorias() {
+        boolean volver = false;
+        while (!volver) {
+            System.out.println("\n── ABM CATEGORÍAS ──────────────");
+            System.out.println("  1. Alta");
+            System.out.println("  2. Baja lógica");
+            System.out.println("  3. Modificación");
+            System.out.println("  4. Listado");
+            System.out.println("  0. Volver");
+            System.out.print("Opción: ");
+            switch (leerInt()) {
+                case 1 -> altaCategoria();
+                case 2 -> bajaCategoria();
+                case 3 -> modificarCategoria();
+                case 4 -> listarCategorias();
+                case 0 -> volver = true;
+                default -> System.out.println("⚠ Opción inválida.");
+            }
+        }
+    }
 
-        // Limpiar datos previos para ejecuciones repetidas
-        em.getTransaction().begin();
-        em.createQuery("DELETE FROM DetallePedido").executeUpdate();
-        em.createQuery("DELETE FROM Pedido").executeUpdate();
-        em.createQuery("DELETE FROM Producto").executeUpdate();
-        em.createQuery("DELETE FROM Categoria").executeUpdate();
-        em.createQuery("DELETE FROM Usuario").executeUpdate();
-        em.getTransaction().commit();
+    private static void altaCategoria() {
+        System.out.print("Nombre (obligatorio): ");
+        String nombre = sc.nextLine().trim();
+        if (nombre.isEmpty()) {
+            System.out.println("✖ El nombre no puede estar vacío.");
+            return;
+        }
+        System.out.print("Descripción: ");
+        String descripcion = sc.nextLine().trim();
 
-        // ================================================================
-        // PERSISTIR
-        // ================================================================
-        em.getTransaction().begin();
-
-        // --- Categorías ---
-        Categoria electronica = Categoria.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Electrónica").descripcion("Dispositivos electrónicos")
+        Categoria c = Categoria.builder()
+                .eliminado(false)
+                .createdAt(LocalDateTime.now())
+                .nombre(nombre)
+                .descripcion(descripcion)
                 .build();
-        Categoria ropa = Categoria.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Ropa").descripcion("Indumentaria y accesorios")
+
+        Categoria guardada = categoriaRepo.guardar(c);
+        System.out.println("✔ Categoría creada con ID: " + guardada.getId());
+    }
+
+    private static void bajaCategoria() {
+        System.out.print("ID de la categoría a dar de baja: ");
+        Long id = leerLong();
+        if (id == null) return;
+
+        boolean resultado = categoriaRepo.eliminarLogico(id);
+        if (resultado) {
+            System.out.println("✔ Categoría con ID " + id + " dada de baja.");
+        } else {
+            System.out.println("✖ No existe categoría con ID " + id + ".");
+        }
+    }
+
+    private static void modificarCategoria() {
+        System.out.print("ID de la categoría a modificar: ");
+        Long id = leerLong();
+        if (id == null) return;
+
+        Optional<Categoria> opt = categoriaRepo.buscarPorId(id);
+        if (opt.isEmpty() || opt.get().isEliminado()) {
+            System.out.println("✖ No existe categoría activa con ID " + id + ".");
+            return;
+        }
+        Categoria c = opt.get();
+        System.out.println("Valores actuales → Nombre: \"" + c.getNombre() + "\" | Descripción: \"" + c.getDescripcion() + "\"");
+        System.out.print("Nuevo nombre (Enter para mantener): ");
+        String nombre = sc.nextLine().trim();
+        System.out.print("Nueva descripción (Enter para mantener): ");
+        String descripcion = sc.nextLine().trim();
+
+        if (!nombre.isEmpty())      c.setNombre(nombre);
+        if (!descripcion.isEmpty()) c.setDescripcion(descripcion);
+
+        categoriaRepo.guardar(c);
+        System.out.println("✔ Categoría actualizada.");
+    }
+
+    private static void listarCategorias() {
+        List<Categoria> lista = categoriaRepo.listarActivos();
+        if (lista.isEmpty()) {
+            System.out.println("No hay categorías activas.");
+            return;
+        }
+        System.out.println("\n  ID  │ Nombre                  │ Descripción");
+        System.out.println("──────┼─────────────────────────┼─────────────────────────");
+        for (Categoria c : lista) {
+            System.out.printf("  %-4d│ %-23s │ %s%n",
+                    c.getId(), c.getNombre(), c.getDescripcion());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // MENÚ PRODUCTOS
+    // ─────────────────────────────────────────────────────────────
+    private static void menuProductos() {
+        boolean volver = false;
+        while (!volver) {
+            System.out.println("\n── ABM PRODUCTOS ───────────────");
+            System.out.println("  1. Alta");
+            System.out.println("  2. Baja lógica");
+            System.out.println("  3. Modificación");
+            System.out.println("  4. Listado");
+            System.out.println("  0. Volver");
+            System.out.print("Opción: ");
+            switch (leerInt()) {
+                case 1 -> altaProducto();
+                case 2 -> bajaProducto();
+                case 3 -> modificarProducto();
+                case 4 -> listarProductos();
+                case 0 -> volver = true;
+                default -> System.out.println("⚠ Opción inválida.");
+            }
+        }
+    }
+
+    private static void altaProducto() {
+        List<Categoria> categorias = categoriaRepo.listarActivos();
+        if (categorias.isEmpty()) {
+            System.out.println("✖ No hay categorías activas. Cree una primero.");
+            return;
+        }
+        System.out.println("Categorías disponibles:");
+        for (Categoria c : categorias) {
+            System.out.printf("  [%d] %s%n", c.getId(), c.getNombre());
+        }
+        System.out.print("ID de categoría: ");
+        Long catId = leerLong();
+        if (catId == null) return;
+        Optional<Categoria> catOpt = categoriaRepo.buscarPorId(catId);
+        if (catOpt.isEmpty() || catOpt.get().isEliminado()) {
+            System.out.println("✖ Categoría no válida.");
+            return;
+        }
+
+        System.out.print("Nombre del producto: ");
+        String nombre = sc.nextLine().trim();
+        if (nombre.isEmpty()) { System.out.println("✖ Nombre obligatorio."); return; }
+
+        System.out.print("Descripción: ");
+        String descripcion = sc.nextLine().trim();
+
+        System.out.print("Precio: ");
+        Double precio = leerDouble();
+        if (precio == null || precio < 0) { System.out.println("✖ Precio inválido."); return; }
+
+        System.out.print("Stock: ");
+        Integer stock = leerIntPositivo();
+        if (stock == null || stock < 0) { System.out.println("✖ Stock inválido."); return; }
+
+        Producto p = Producto.builder()
+                .eliminado(false)
+                .createdAt(LocalDateTime.now())
+                .nombre(nombre)
+                .descripcion(descripcion)
+                .precio(precio)
+                .stock(stock)
+                .disponible(true)
+                .imagen("")
+                .categoria(catOpt.get())
                 .build();
-        Categoria hogar = Categoria.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Hogar").descripcion("Artículos para el hogar")
-                .build();
 
-        em.persist(electronica);
-        em.persist(ropa);
-        em.persist(hogar);
+        Producto guardado = productoRepo.guardar(p);
+        System.out.println("✔ Producto creado con ID: " + guardado.getId());
+    }
 
-        // --- Productos ---
-        Producto p1 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Notebook").descripcion("Laptop 15 pulgadas").precio(150000.0).stock(10)
-                .imagen("notebook.jpg").disponible(true).categoria(electronica).build();
-        Producto p2 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Mouse").descripcion("Mouse inalámbrico").precio(5000.0).stock(50)
-                .imagen("mouse.jpg").disponible(true).categoria(electronica).build();
-        Producto p3 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Teclado").descripcion("Teclado mecánico").precio(12000.0).stock(30)
-                .imagen("teclado.jpg").disponible(true).categoria(electronica).build();
-        Producto p4 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Monitor").descripcion("Monitor 24 pulgadas Full HD").precio(80000.0).stock(15)
-                .imagen("monitor.jpg").disponible(true).categoria(electronica).build();
-        Producto p5 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Remera").descripcion("Remera de algodón").precio(3500.0).stock(100)
-                .imagen("remera.jpg").disponible(true).categoria(ropa).build();
-        Producto p6 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Pantalón").descripcion("Jean clásico").precio(8000.0).stock(60)
-                .imagen("pantalon.jpg").disponible(true).categoria(ropa).build();
-        Producto p7 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Zapatillas").descripcion("Zapatillas deportivas").precio(25000.0).stock(40)
-                .imagen("zapatillas.jpg").disponible(true).categoria(ropa).build();
-        Producto p8 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Silla").descripcion("Silla ergonómica de oficina").precio(45000.0).stock(20)
-                .imagen("silla.jpg").disponible(true).categoria(hogar).build();
-        Producto p9 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Lámpara").descripcion("Lámpara LED de escritorio").precio(7000.0).stock(35)
-                .imagen("lampara.jpg").disponible(true).categoria(hogar).build();
-        Producto p10 = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Escritorio").descripcion("Escritorio de madera 120cm").precio(60000.0).stock(8)
-                .imagen("escritorio.jpg").disponible(true).categoria(hogar).build();
+    private static void bajaProducto() {
+        System.out.print("ID del producto a dar de baja: ");
+        Long id = leerLong();
+        if (id == null) return;
 
-        em.persist(p1); em.persist(p2); em.persist(p3); em.persist(p4); em.persist(p5);
-        em.persist(p6); em.persist(p7); em.persist(p8); em.persist(p9); em.persist(p10);
+        Optional<Producto> opt = productoRepo.buscarPorId(id);
+        if (opt.isEmpty()) {
+            System.out.println("✖ No existe producto con ID " + id + ".");
+            return;
+        }
+        if (opt.get().isEliminado()) {
+            System.out.println("✖ El producto \"" + opt.get().getNombre() + "\" ya está dado de baja.");
+            return;
+        }
+        productoRepo.eliminarLogico(id);
+        System.out.println("✔ Producto \"" + opt.get().getNombre() + "\" dado de baja.");
+    }
 
-        // --- Usuarios ---
-        Usuario usuario1 = Usuario.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Ana").apellido("García").email("ana@mail.com")
-                .celular("1122334455").contrasena("pass123").rol(Rol.USUARIO).build();
-        Usuario usuario2 = Usuario.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Carlos").apellido("López").email("carlos@mail.com")
-                .celular("1199887766").contrasena("pass456").rol(Rol.ADMIN).build();
+    private static void modificarProducto() {
+        System.out.print("ID del producto a modificar: ");
+        Long id = leerLong();
+        if (id == null) return;
 
-        em.persist(usuario1);
-        em.persist(usuario2);
+        Optional<Producto> opt = productoRepo.buscarPorId(id);
+        if (opt.isEmpty() || opt.get().isEliminado()) {
+            System.out.println("✖ No existe producto activo con ID " + id + ".");
+            return;
+        }
+        Producto p = opt.get();
+        System.out.printf("Valores actuales → Nombre: \"%s\" | Precio: %.2f | Stock: %d%n",
+                p.getNombre(), p.getPrecio(), p.getStock());
 
-        // --- Pedidos ---
-        Pedido pedido1 = Pedido.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .usuario(usuario1).estado(Estado.PENDIENTE).formaPago(FormaPago.TARJETA)
-                .fecha(LocalDate.now()).detalles(new HashSet<>()).build();
-        pedido1.addDetallePedido(1, p1);
-        pedido1.addDetallePedido(2, p2);
-        pedido1.calcularTotal();
+        System.out.print("Nuevo nombre (Enter para mantener): ");
+        String nombre = sc.nextLine().trim();
 
-        Pedido pedido2 = Pedido.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .usuario(usuario1).estado(Estado.CONFIRMADO).formaPago(FormaPago.TRANSFERENCIA)
-                .fecha(LocalDate.now()).detalles(new HashSet<>()).build();
-        pedido2.addDetallePedido(3, p5);
-        pedido2.addDetallePedido(1, p6);
-        pedido2.addDetallePedido(1, p7);
-        pedido2.calcularTotal();
+        System.out.print("Nuevo precio (Enter para mantener): ");
+        String precioStr = sc.nextLine().trim();
 
-        Pedido pedido3 = Pedido.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .usuario(usuario2).estado(Estado.TERMINADO).formaPago(FormaPago.EFECTIVO)
-                .fecha(LocalDate.now()).detalles(new HashSet<>()).build();
-        pedido3.addDetallePedido(1, p8);
-        pedido3.addDetallePedido(2, p9);
-        pedido3.calcularTotal();
+        System.out.print("Nuevo stock (Enter para mantener): ");
+        String stockStr = sc.nextLine().trim();
 
-        em.persist(pedido1);
-        em.persist(pedido2);
-        em.persist(pedido3);
+        if (!nombre.isEmpty()) p.setNombre(nombre);
+        if (!precioStr.isEmpty()) {
+            try {
+                double precio = Double.parseDouble(precioStr);
+                p.setPrecio(precio);
+            } catch (NumberFormatException e) {
+                System.out.println("⚠ Precio inválido, se mantiene el valor anterior.");
+            }
+        }
+        if (!stockStr.isEmpty()) {
+            try {
+                p.setStock(Integer.parseInt(stockStr));
+            } catch (NumberFormatException e) {
+                System.out.println("⚠ Stock inválido, se mantiene el valor anterior.");
+            }
+        }
 
-        em.getTransaction().commit();
-        System.out.println("\n✔ Datos persistidos correctamente.\n");
+        productoRepo.guardar(p);
+        System.out.println("✔ Producto actualizado.");
+    }
 
-        // ================================================================
-        // ACTUALIZAR 2 productos (punto 5)
-        // ================================================================
-        em.getTransaction().begin();
+    private static void listarProductos() {
+        List<Producto> lista = productoRepo.listarActivos();
+        if (lista.isEmpty()) {
+            System.out.println("No hay productos activos.");
+            return;
+        }
+        System.out.println("\n  ID  │ Nombre                  │    Precio │ Stock │ Categoría");
+        System.out.println("──────┼─────────────────────────┼───────────┼───────┼──────────────");
+        for (Producto p : lista) {
+            System.out.printf("  %-4d│ %-23s │ %9.2f │ %5d │ %s%n",
+                    p.getId(), p.getNombre(), p.getPrecio(), p.getStock(),
+                    p.getCategoria().getNombre());
+        }
+    }
 
-        p1.setPrecio(145000.0);
-        p1.setStock(8);
-        em.merge(p1);
+    // ─────────────────────────────────────────────────────────────
+    // MENÚ REPORTES
+    // ─────────────────────────────────────────────────────────────
+    private static void menuReportes() {
+        boolean volver = false;
+        while (!volver) {
+            System.out.println("\n── REPORTES ────────────────────");
+            System.out.println("  1. Productos por categoría");
+            System.out.println("  0. Volver");
+            System.out.print("Opción: ");
+            switch (leerInt()) {
+                case 1 -> productosPorCategoria();
+                case 0 -> volver = true;
+                default -> System.out.println("⚠ Opción inválida.");
+            }
+        }
+    }
 
-        p5.setPrecio(3800.0);
-        p5.setDisponible(false);
-        em.merge(p5);
+    private static void productosPorCategoria() {
+        List<Categoria> categorias = categoriaRepo.listarActivos();
+        if (categorias.isEmpty()) {
+            System.out.println("No hay categorías activas.");
+            return;
+        }
+        System.out.println("Seleccioná una categoría:");
+        for (Categoria c : categorias) {
+            System.out.printf("  [%d] %s%n", c.getId(), c.getNombre());
+        }
+        System.out.print("ID de categoría: ");
+        Long catId = leerLong();
+        if (catId == null) return;
 
-        em.getTransaction().commit();
-        System.out.println("✔ Productos actualizados:");
-        System.out.println("  Notebook → precio: " + p1.getPrecio() + ", stock: " + p1.getStock());
-        System.out.println("  Remera   → precio: " + p5.getPrecio() + ", disponible: " + p5.getDisponible());
+        List<Producto> productos = productoRepo.buscarPorCategoria(catId);
+        if (productos.isEmpty()) {
+            System.out.println("No hay productos activos en esa categoría.");
+            return;
+        }
+        System.out.println("\n  ID  │ Nombre                  │    Precio │ Stock");
+        System.out.println("──────┼─────────────────────────┼───────────┼──────");
+        for (Producto p : productos) {
+            System.out.printf("  %-4d│ %-23s │ %9.2f │ %d%n",
+                    p.getId(), p.getNombre(), p.getPrecio(), p.getStock());
+        }
+    }
 
-        // ================================================================
-        // BUSCAR usuario por id (punto 6)
-        // ================================================================
-        Long idBuscado = usuario1.getId();
-        Usuario encontradoPorId = em.find(Usuario.class, idBuscado);
-        System.out.println("\n✔ Buscar Usuario por id=" + idBuscado + ":");
-        System.out.println("  " + encontradoPorId.getNombre() + " " + encontradoPorId.getApellido());
+    // ─────────────────────────────────────────────────────────────
+    // HELPERS de lectura
+    // ─────────────────────────────────────────────────────────────
+    private static int leerInt() {
+        try {
+            return Integer.parseInt(sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
 
-        // ================================================================
-        // BUSCAR usuario por mail (punto 7)
-        // ================================================================
-        TypedQuery<Usuario> queryMail = em.createQuery(
-                "SELECT u FROM Usuario u WHERE u.email = :mail", Usuario.class);
-        queryMail.setParameter("mail", "carlos@mail.com");
-        Usuario encontradoPorMail = queryMail.getSingleResult();
-        System.out.println("\n✔ Buscar Usuario por mail 'carlos@mail.com':");
-        System.out.println("  " + encontradoPorMail.getNombre() + " " + encontradoPorMail.getApellido()
-                + " | rol: " + encontradoPorMail.getRol());
+    private static Integer leerIntPositivo() {
+        try {
+            return Integer.parseInt(sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 
-        // ================================================================
-        // BORRAR 1 producto (punto 8)
-        // ================================================================
-        em.getTransaction().begin();
-        Producto aEliminar = em.find(Producto.class, p10.getId());
-        em.remove(aEliminar);
-        em.getTransaction().commit();
-        System.out.println("\n✔ Producto eliminado: " + p10.getNombre() + " (id=" + p10.getId() + ")");
+    private static Long leerLong() {
+        try {
+            return Long.parseLong(sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("✖ ID inválido.");
+            return null;
+        }
+    }
 
-        // ================================================================
-        // SALIDA POR CONSOLA (requisitos Lombok TP anterior)
-        // ================================================================
-        List<Producto> productos = em.createQuery("SELECT p FROM Producto p", Producto.class).getResultList();
-
-        System.out.println("\n=== Producto individual ===");
-        System.out.println(em.find(Producto.class, p1.getId()));
-
-        System.out.println("\n=== Listado completo de productos ===");
-        productos.forEach(System.out::println);
-
-        System.out.println("\n=== Pedidos del usuario con más pedidos ===");
-        List<Pedido> pedidos = em.createQuery("SELECT p FROM Pedido p", Pedido.class).getResultList();
-        Map<Usuario, List<Pedido>> pedidosPorUsuario = pedidos.stream()
-                .collect(Collectors.groupingBy(Pedido::getUsuario));
-        pedidosPorUsuario.entrySet().stream()
-                .max(Comparator.comparingInt(e -> e.getValue().size()))
-                .ifPresent(entry -> {
-                    Usuario u = entry.getKey();
-                    System.out.println("Usuario: " + u.getNombre() + " " + u.getApellido()
-                            + " (" + entry.getValue().size() + " pedidos)");
-                    entry.getValue().forEach(p ->
-                            System.out.println("  Pedido id=" + p.getId() + " | Total: $" + p.getTotal()));
-                });
-
-        System.out.println("\n=== Comparación equals ===");
-        Producto duplicado = Producto.builder()
-                .eliminado(false).createdAt(LocalDateTime.now())
-                .nombre("Notebook").descripcion("Otra desc").precio(1.0).stock(1)
-                .imagen("x.jpg").disponible(true).categoria(electronica).build();
-        productos.forEach(p ->
-                System.out.println("¿Notebook equals " + p.getNombre() + "? " + duplicado.equals(p)));
-
-        System.out.println("\n=== UsuarioDTO ===");
-        UsuarioDTO dto1 = new UsuarioDTO(usuario1.getId(), usuario1.getNombre(), usuario1.getApellido(), usuario1.getEmail(), usuario1.getCelular());
-        UsuarioDTO dto2 = new UsuarioDTO(usuario2.getId(), usuario2.getNombre(), usuario2.getApellido(), usuario2.getEmail(), usuario2.getCelular());
-        System.out.println(dto1);
-        System.out.println(dto2);
-
-        em.close();
-        emf.close();
+    private static Double leerDouble() {
+        try {
+            return Double.parseDouble(sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
