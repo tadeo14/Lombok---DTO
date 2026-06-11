@@ -5,6 +5,7 @@ plugins {
 
 application {
     mainClass = 'com.utn.Main'
+    applicationDefaultJvmArgs = ['-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8']
 }
 
 group = 'com.utn'
