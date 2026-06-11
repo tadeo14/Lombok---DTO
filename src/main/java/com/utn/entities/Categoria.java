@@ -4,10 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true, exclude = "productos")
+@EqualsAndHashCode(callSuper = true, exclude = "productos")
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -19,4 +22,8 @@ public class Categoria extends Base {
     private String nombre;
 
     private String descripcion;
+
+    @OneToMany(mappedBy = "categoria", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Producto> productos = new ArrayList<>();
 }

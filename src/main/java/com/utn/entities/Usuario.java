@@ -5,10 +5,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true, exclude = "pedidos")
+@EqualsAndHashCode(callSuper = true, exclude = "pedidos")
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -34,6 +37,10 @@ public class Usuario extends Base {
     @Column(nullable = false)
     private Rol rol;
 
+    @OneToMany(mappedBy = "usuario", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Pedido> pedidos = new ArrayList<>();
+
     public void setEmail(String email) {
         if (email == null || !email.contains("@"))
             throw new IllegalArgumentException("Email inválido");
@@ -52,3 +59,4 @@ public class Usuario extends Base {
         this.apellido = apellido;
     }
 }
+
